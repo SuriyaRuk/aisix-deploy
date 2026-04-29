@@ -1,0 +1,46 @@
+services:
+  aisix:
+    image: ${AISIX_IMAGE:-ghcr.io/api7/aisix:latest}
+    container_name: aisix
+    restart: unless-stopped
+    ports:
+      # bind only to localhost — nginx (host) จะเป็นตัว proxy ออก public
+      - "127.0.0.1:3000:3000"   # Proxy API (OpenAI-compatible)
+      - "127.0.0.1:3001:3001"   # Admin API + UI + /openapi
+    volumes:
+      - ./config.yaml:/etc/aisix/config.yaml:ro
+    depends_on:
+      etcd:
+        condition: service_healthy
+    environment:
+      RUST_LOG: ${RUST_LOG:-info}
+    networks:
+      - aisix-net
+
+  etcd:
+    image: gcr.io/etcd-development/etcd:v3.6.8
+    container_name: aisix-etcd
+    restart: unless-stopped
+    command:
+      - etcd
+      - --advertise-client-urls=http://etcd:2379
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --data-dir=/var/lib/etcd
+    volumes:
+      - etcd-data:/var/lib/etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    expose:
+      - "2379"
+    networks:
+      - aisix-net
+
+networks:
+  aisix-net:
+    driver: bridge
+
+volumes:
+  etcd-data:

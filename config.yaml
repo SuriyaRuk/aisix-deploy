@@ -1,0 +1,16 @@
+deployment:
+  etcd:
+    host:
+      - "http://etcd:2379"
+    prefix: /aisix
+    timeout: 30
+  admin:
+    admin_key:
+      # เปลี่ยนค่านี้ก่อน deploy! (ใช้: openssl rand -hex 16)
+      - key: CHANGE_ME_ADMIN_KEY
+
+server:
+  proxy:
+    listen: 0.0.0.0:3000
+  admin:
+    listen: 0.0.0.0:3001
