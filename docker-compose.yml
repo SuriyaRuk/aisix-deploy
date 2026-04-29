@@ -1,6 +1,12 @@
 services:
   aisix:
-    image: ${AISIX_IMAGE:-ghcr.io/api7/aisix:latest}
+    # ⚠️ aisix ไม่ publish tag :latest
+    # ใช้ :dev (main branch ล่าสุด) หรือระบุ semver เช่น :v0.1.0
+    # ถ้าจะ build จาก source: ตั้ง AISIX_IMAGE=aisix:local แล้ว uncomment block build:
+    image: ${AISIX_IMAGE:-ghcr.io/api7/aisix:dev}
+    # build:
+    #   context: ./aisix-src        # path ไปยัง git clone ของ api7/aisix
+    #   dockerfile: Dockerfile
     container_name: aisix
     restart: unless-stopped
     ports:

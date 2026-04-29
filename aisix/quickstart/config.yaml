@@ -1,0 +1,15 @@
+deployment:
+  etcd:
+    host:
+      - "http://etcd:2379"
+    prefix: /aisix
+    timeout: 30
+  admin:
+    admin_key:
+      - key: admin
+
+server:
+  proxy:
+    listen: 0.0.0.0:3000
+  admin:
+    listen: 0.0.0.0:3001

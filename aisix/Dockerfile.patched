@@ -1,0 +1,46 @@
+# Drop-in replacement for /opt/aisix/aisix-src/Dockerfile
+# แก้ปัญหา: "The repository ... is not signed" / GPG error ตอน apt-get update
+# สาเหตุ: rust:bookworm cache เก่ามี debian-archive-keyring ที่ debian rotate ไปแล้ว
+
+# Stage 1: Build UI
+FROM node:lts-slim AS ui-builder
+RUN corepack enable pnpm
+WORKDIR /app
+COPY ui/package.json ui/pnpm-lock.yaml ui/
+RUN cd ui && pnpm install --frozen-lockfile
+COPY ui/ ui/
+RUN cd ui && pnpm build
+
+# Stage 2: Build Rust binary
+# pin image ให้ชัดเจน + ดึง keyring ใหม่ก่อน
+FROM rust:bookworm AS builder
+
+# 1) อนุญาต insecure ชั่วคราวแค่เพื่อ pull keyring ตัวใหม่
+# 2) ติดตั้ง debian-archive-keyring + ca-certificates
+# 3) apt-get update ปกติ (ตอนนี้ signature ผ่านแล้ว)
+RUN set -eux; \
+    apt-get -o Acquire::AllowInsecureRepositories=true \
+            -o Acquire::AllowDowngradeToInsecureRepositories=true \
+            update; \
+    apt-get install -y --allow-unauthenticated \
+            ca-certificates debian-archive-keyring; \
+    rm -rf /var/lib/apt/lists/*; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+            protobuf-compiler pkg-config libssl-dev; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+COPY src/ src/
+COPY build.rs ./
+COPY --from=ui-builder /app/ui/dist ui/dist
+RUN cargo build --locked --release
+
+# Stage 3: Runtime
+FROM gcr.io/distroless/cc-debian12:nonroot
+COPY --from=builder /app/target/release/aisix /usr/local/bin/aisix
+COPY config.yaml /etc/aisix/config.yaml
+EXPOSE 3000 3001
+WORKDIR /etc/aisix
+ENTRYPOINT ["aisix"]

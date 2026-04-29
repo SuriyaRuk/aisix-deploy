@@ -61,6 +61,37 @@ docker compose up -d
 docker compose ps
 ```
 
+> **⚠️ เรื่อง image tag** — `aisix` ไม่ publish tag `:latest` (ดู
+> `.github/workflows/docker.yaml` ของ repo) ที่ใช้ได้คือ:
+>
+> | tag | ความหมาย |
+> | --- | --- |
+> | `:dev` | build ล่าสุดของ branch `main` (default ใน compose นี้) |
+> | `:vX.Y.Z` | release semver — เช่น `:v0.1.0` |
+> | `:X.Y` | minor — เช่น `:0.1` |
+>
+> ถ้าเจอ `Head "https://ghcr.io/v2/api7/aisix/manifests/latest": unauthorized`
+> แปลว่ายังตั้ง tag เป็น `:latest` อยู่ — แก้โดยตั้ง env:
+>
+> ```bash
+> echo "AISIX_IMAGE=ghcr.io/api7/aisix:dev" >> /opt/aisix/.env
+> docker compose up -d
+> ```
+
+### 3.1 (ทางเลือก) Build เองจาก source
+
+ถ้าอยาก pin commit ตัวเอง / ไม่อยากผูกกับ `:dev`:
+
+```bash
+cd /opt/aisix
+git clone --depth 1 https://github.com/api7/aisix.git aisix-src
+# uncomment block build: ใน docker-compose.yml
+# แล้ว set image tag เป็น local
+echo "AISIX_IMAGE=aisix:local" >> .env
+docker compose build aisix
+docker compose up -d
+```
+
 ตรวจ:
 
 ```bash
